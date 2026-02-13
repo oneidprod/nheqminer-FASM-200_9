@@ -56,8 +56,11 @@ void MinerFactory::ClearAllSolvers() {
 }
 
 ISolver * MinerFactory::GenCPUSolver(int use_opt) {
-    // TODO fix dynamic linking on Linux
-#ifdef    USE_CPU_XENONCAT
+#ifdef USE_SOLVER1927
+    // Use Solver1927 (Equihash 192,7 optimized) as primary CPU solver
+    _solvers.push_back(new CPUSolver1927(use_opt));
+    return _solvers.back();
+#elif defined(USE_CPU_XENONCAT)
 	if (_use_xenoncat) {
 		_solvers.push_back(new CPUSolverXenoncat(use_opt));
 		return _solvers.back();
@@ -66,6 +69,7 @@ ISolver * MinerFactory::GenCPUSolver(int use_opt) {
 		return _solvers.back();
 	}
 #else
+    // Fallback to cpu_tromp if no other solver available
     _solvers.push_back(new CPUSolverTromp(use_opt));
     return _solvers.back();
 #endif

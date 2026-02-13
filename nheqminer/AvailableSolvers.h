@@ -14,6 +14,11 @@ CREATE_SOLVER_STUB(cpu_tromp, "cpu_tromp_STUB")
 #else
 CREATE_SOLVER_STUB(cpu_xenoncat, "cpu_xenoncat_STUB")
 #endif
+#ifdef USE_SOLVER1927
+#include "../solver1927/solver1927.hpp"
+#else
+CREATE_SOLVER_STUB(solver1927, "solver1927_STUB")
+#endif
 #ifdef USE_CUDA_TROMP
 #include "../cuda_tromp/cuda_tromp.hpp"
 #else
@@ -54,6 +59,13 @@ public:
 		_context->use_opt = use_opt;
 	}
 	virtual ~CPUSolverXenoncat() {}
+};
+class CPUSolver1927 : public Solver<solver1927> {
+public:
+	CPUSolver1927(int use_opt) : Solver<solver1927>(new solver1927(), SolverType::CPU) {
+		_context->use_opt = use_opt;
+	}
+	virtual ~CPUSolver1927() {}
 };
 // TODO remove platform id for cuda solvers
 // CUDA solvers
