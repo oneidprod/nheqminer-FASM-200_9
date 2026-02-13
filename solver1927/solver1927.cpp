@@ -173,26 +173,14 @@ bool solver1927::run_collision_detection(const char* header, unsigned int header
     
     std::cout << "Solver1927: Generated " << generated << " hashes, starting collision detection..." << std::endl;
     
-    // Run the collision detection algorithm
-    bool found_solutions = collision_detector.detect_collisions(pool, generated);
+    // Run the collision detection algorithm with solution callback
+    bool found_solutions = collision_detector.detect_collisions(pool, generated, solutionf);
     
     if (found_solutions) {
-        // For now, create a dummy solution to test the callback mechanism
-        std::vector<uint32_t> solution_indices;
-        for (int i = 0; i < (1 << 7); i++) {  // 2^7 = 128 indices for K=7
-            solution_indices.push_back(i);
-        }
-        
-        // Create dummy solution proof (normally this would be actual proof data)
-        std::vector<uint8_t> solution_proof(32, 0x42);  // Dummy 32-byte proof
-        
-        std::cout << "Solver1927: Reporting solution with " << solution_indices.size() 
-                  << " indices" << std::endl;
-        
-        // Report the solution
-        solutionf(solution_indices, solution_proof.size(), solution_proof.data());
+        std::cout << "Solver1927: ✅ Solutions found and reported via callback!" << std::endl;
         return true;
+    } else {
+        std::cout << "Solver1927: No valid solutions found in this iteration" << std::endl;
+        return false;
     }
-    
-    return false;
 }

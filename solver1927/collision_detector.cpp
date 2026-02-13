@@ -50,7 +50,8 @@ void CollisionDetector::initialize_simd_functions() {
     }
 }
 
-bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
+bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count, 
+                                         std::function<void(const std::vector<uint32_t>&, size_t, const unsigned char*)> solution_callback) {
     if (!pool || hash_count == 0) {
         std::cerr << "CollisionDetector: Invalid input parameters" << std::endl;
         return false;
@@ -73,8 +74,9 @@ bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
         
         // Stage 0 uses Blake2b hashes, stages 1+ use XOR results  
         bool is_blake2b_input = (stage == 0);
+        const StageData* prev_stage_data = (stage > 0) ? &stages[stage - 1] : nullptr;
         size_t collisions_found = find_stage_collisions(current_input, current_count, 
-                                                       stages[stage], stage, is_blake2b_input);
+                                                       stages[stage], stage, is_blake2b_input, prev_stage_data);
         
         std::cout << collisions_found << " collisions found" << std::endl;
         
@@ -88,6 +90,14 @@ bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
         if (stage == STAGES - 1) {
             std::cout << "CollisionDetector: Found " << collisions_found 
                       << " potential solutions at final stage!" << std::endl;
+            
+            // Phase 3: Extract complete solutions
+            for (const auto& collision : stages[stage].collisions) {
+                if (collision.is_complete_solution() && solution_callback) {
+                    extract_solution(collision, solution_callback);
+                }
+            }
+            
             return collisions_found > 0;
         }
         
@@ -117,7 +127,8 @@ bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
 }
 
 size_t CollisionDetector::find_stage_collisions(const uint8_t* input_data, size_t input_count,
-                                               StageData& output_stage, int stage_num, bool is_blake2b_input) {
+                                               StageData& output_stage, int stage_num, bool is_blake2b_input,
+                                               const StageData* prev_stage) {
     output_stage.clear();
     
     // Clear all buckets for this stage
@@ -144,7 +155,7 @@ size_t CollisionDetector::find_stage_collisions(const uint8_t* input_data, size_
         
         if (bucket.size() < 2) continue;  // Need at least 2 items for collision
         
-        size_t bucket_collisions = process_bucket_collisions(bucket_id, output_stage, stage_num);
+        size_t bucket_collisions = process_bucket_collisions(bucket_id, output_stage, stage_num, prev_stage);
         total_collisions += bucket_collisions;
     }
     
@@ -199,7 +210,7 @@ void CollisionDetector::populate_buckets(const uint8_t* hashes, size_t hash_coun
     std::cout << "CollisionDetector: Populated " << non_empty << " non-empty buckets" << std::endl;
 }
 
-size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData& output, int stage) {
+size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData& output_stage, int stage_num, const StageData* prev_stage) {
     const auto& bucket = buckets[bucket_id];
     size_t collision_count = 0;
     
@@ -220,13 +231,38 @@ size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData&
             // In a full implementation, we'd verify the exact bit pattern match
             
             if (collision_found) {
-                CollisionPair pair(entry_a.hash_index, entry_b.hash_index);
+                CollisionPair pair;
+                
+                // Phase 3: Create collision with genealogy tracking
+                if (stage_num == 0) {
+                    // Stage 0: direct hash indices
+                    pair = CollisionPair(entry_a.hash_index, entry_b.hash_index, stage_num);
+                } else if (prev_stage && entry_a.hash_index < prev_stage->collisions.size() && 
+                          entry_b.hash_index < prev_stage->collisions.size()) {
+                    // Stage 1+: merge ancestry from parent collisions
+                    const CollisionPair& parent_a = prev_stage->collisions[entry_a.hash_index];
+                    const CollisionPair& parent_b = prev_stage->collisions[entry_b.hash_index];
+                    pair = CollisionPair(entry_a.hash_index, entry_b.hash_index, stage_num, parent_a, parent_b);
+                } else {
+                    // Fallback for invalid indices
+                    pair = CollisionPair(entry_a.hash_index, entry_b.hash_index);
+                    pair.stage_level = stage_num;
+                }
                 
                 // Compute XOR of the two hashes using SIMD
                 compute_xor_simd(entry_a.hash_ptr, entry_b.hash_ptr, pair.xor_result);
                 
-                output.collisions.push_back(pair);
+                output_stage.collisions.push_back(pair);
                 collision_count++;
+                
+                // Phase 3: Check for complete solutions
+                if (pair.is_complete_solution()) {
+                    std::cout << "🎯 COMPLETE SOLUTION FOUND! Indices: ";
+                    for (size_t idx : pair.ancestor_indices) {
+                        std::cout << idx << " ";
+                    }
+                    std::cout << std::endl;
+                }
             }
         }
     }
@@ -327,6 +363,26 @@ bool CollisionDetector::validate_solution(const std::vector<uint32_t>& solution_
     // Additional validation would check that XOR of all solution hashes equals zero
     // Simplified for now
     return true;
+}
+
+// Phase 3: Extract and validate complete Equihash solution
+void CollisionDetector::extract_solution(const CollisionPair& final_collision, 
+                                        std::function<void(const std::vector<uint32_t>&, size_t, const unsigned char*)> callback) {
+    if (!final_collision.is_complete_solution()) {
+        std::cout << "⚠️  Warning: Not a complete solution (Stage " << final_collision.stage_level 
+                  << ", " << final_collision.get_solution_size() << " indices)" << std::endl;
+        return;
+    }
+    
+    std::cout << "✅ Extracting complete solution with " << final_collision.ancestor_indices.size() 
+              << " indices..." << std::endl;
+    
+    // Call the solution callback with the extracted indices
+    // Note: nonce_offset and nonce_ptr are placeholders for now
+    size_t nonce_offset = 0;
+    const unsigned char* nonce_ptr = nullptr;
+    
+    callback(final_collision.ancestor_indices, nonce_offset, nonce_ptr);
 }
 
 } // namespace Solver1927
