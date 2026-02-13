@@ -17,6 +17,7 @@
 #include "memory_pool.hpp"
 #include "simd_detector.hpp"
 #include "blake2b_hasher.hpp"
+#include "collision_detector.hpp"
 #include "../nheqminer/ISolver.h"
 
 class solver1927 : public ISolver {
@@ -101,6 +102,7 @@ private:
     // Memory management
     Solver1927::MemoryManager memory_manager;
     Solver1927::Blake2bManager blake2b_manager;
+    Solver1927::CollisionDetector collision_detector;
     
     // Internal methods
     bool initialize_memory();
@@ -108,4 +110,7 @@ private:
     void report_simd_capabilities() const;
     bool test_blake2b_integration(const char* header, unsigned int header_len,
                                   const char* nonce, unsigned int nonce_len);
+    bool run_collision_detection(const char* header, unsigned int header_len,
+                                const char* nonce, unsigned int nonce_len,
+                                std::function<void(const std::vector<uint32_t>&, size_t, const unsigned char*)> solutionf);
 };

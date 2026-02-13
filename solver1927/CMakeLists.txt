@@ -4,12 +4,14 @@ set(EXECUTABLE solver1927)
 file(GLOB SRC_LIST
     solver1927.cpp 
     simd_detector.cpp 
-    blake2b_hasher.cpp )
+    blake2b_hasher.cpp 
+    collision_detector.cpp )
 file(GLOB HEADERS
     solver1927.hpp
     memory_pool.hpp
     simd_detector.hpp
     blake2b_hasher.hpp
+    collision_detector.hpp
     )
 
 # Include directories

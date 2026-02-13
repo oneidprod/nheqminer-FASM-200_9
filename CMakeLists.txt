@@ -38,18 +38,16 @@ endif()
 ########
 # LINUX
 if(CMAKE_COMPILER_IS_GNUCXX)
-#    # use native cpu features
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -fPIC")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fPIC")
+    # use native cpu features for optimal SIMD performance
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fPIC")
 
-#    # optimizations
-#    add_definitions(-O3)
-
-    # use
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64 -msse2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -msse2")
-    # optimizations
-    add_definitions(-O2)
+    # optimizations for performance
+    add_definitions(-O3)
+    
+    # Additional SIMD support flags
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64 -mavx -mavx2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -mavx -mavx2")
 endif()
 
 # Common
