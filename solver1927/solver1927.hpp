@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include "memory_pool.hpp"
+#include "simd_detector.hpp"
 
 class solver1927 {
 public:
@@ -16,15 +17,18 @@ public:
     solver1927(int platf_id, int dev_id) {}
     
     std::string getdevinfo() { 
-        return "Solver1927 CPU (N=192, K=7) - AVX2/AVX512 optimized"; 
+        auto level = Solver1927::g_simd_dispatcher.get_active_level();
+        std::string simd_name = Solver1927::g_simd_dispatcher.get_active_name();
+        return "Solver1927 CPU (N=192, K=7) - " + simd_name + " optimized"; 
     }
     
     static int getcount() { return 1; }
     
     static void getinfo(int platf_id, int d_id, std::string& gpu_name, int& sm_count, std::string& version) {
-        gpu_name = "Solver1927 CPU";
-        sm_count = 0;
-        version = "0.2.0";
+        auto simd_name = Solver1927::g_simd_dispatcher.get_active_name();
+        gpu_name = "Solver1927 CPU (" + simd_name + ")";
+        sm_count = Solver1927::g_simd_detector.get_parallel_hash_count();
+        version = "0.3.0";
     }
     
     static void start(solver1927& device_context) {
@@ -62,4 +66,5 @@ private:
     // Internal methods
     bool initialize_memory();
     void cleanup_memory();
+    void report_simd_capabilities() const;
 };

@@ -2,10 +2,12 @@ set(EXECUTABLE solver1927)
 
 # Solver1927 source files
 file(GLOB SRC_LIST
-    solver1927.cpp )
+    solver1927.cpp 
+    simd_detector.cpp )
 file(GLOB HEADERS
     solver1927.hpp
     memory_pool.hpp
+    simd_detector.hpp
     )
 
 # Include directories

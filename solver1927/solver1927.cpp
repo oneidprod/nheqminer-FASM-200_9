@@ -7,6 +7,9 @@
 bool solver1927::initialize_memory() {
     std::cout << "Solver1927: Initializing memory pool..." << std::endl;
     
+    // Report SIMD capabilities first
+    report_simd_capabilities();
+    
     if (!memory_manager.allocate()) {
         std::cerr << "Solver1927: ERROR - Failed to allocate memory pool!" << std::endl;
         return false;
@@ -35,6 +38,16 @@ void solver1927::cleanup_memory() {
     memory_manager.deallocate();
 }
 
+void solver1927::report_simd_capabilities() const {
+    using namespace Solver1927;
+    
+    std::cout << "SIMD Detection Results:" << std::endl;
+    std::cout << "  " << g_simd_detector.get_feature_string() << std::endl;
+    std::cout << "  Best SIMD level: " << g_simd_dispatcher.get_active_name() << std::endl;
+    std::cout << "  SIMD width: " << g_simd_detector.get_simd_width_bits() << " bits" << std::endl;
+    std::cout << "  Parallel hashes: " << g_simd_detector.get_parallel_hash_count() << std::endl;
+}
+
 void solver1927::solve(const char *tequihash_header,
                       unsigned int tequihash_header_len,
                       const char* nonce,
@@ -57,6 +70,7 @@ void solver1927::solve(const char *tequihash_header,
     std::cout << "Nonce length: " << nonce_len << " bytes" << std::endl;
     std::cout << "Memory pool: " << std::fixed << std::setprecision(2) 
               << device_context.memory_manager.get_memory_mb() << " MB" << std::endl;
+    std::cout << "Active SIMD: " << Solver1927::g_simd_dispatcher.get_active_name() << std::endl;
     
     // Verify memory layout sizes
     std::cout << "Memory layout verification:" << std::endl;
@@ -69,7 +83,7 @@ void solver1927::solve(const char *tequihash_header,
     
     int iterations = 0;
     while (!cancelf() && iterations < 100) {
-        // Simulate memory usage - write to different sections of the pool
+        // Simulate memory usage and SIMD operations
         if (iterations % 25 == 0) {
             // Test initial hash buffer access
             pool->initial_hashes.data[iterations % 1000][0] = static_cast<uint8_t>(iterations);
@@ -80,6 +94,11 @@ void solver1927::solve(const char *tequihash_header,
             
             // Test bucket access
             pool->buckets.indices[iterations % 256][0] = iterations;
+            
+            // Simulate SIMD operations
+            if (iterations % 50 == 0) {
+                Solver1927::g_simd_dispatcher.blake2b_parallel_hash(nullptr, nullptr, 8);
+            }
         }
         
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -100,6 +119,7 @@ void solver1927::solve(const char *tequihash_header,
     std::cout << "Solver1927: Completed " << iterations << " iterations in " 
               << duration.count() << "ms" << std::endl;
     std::cout << "Solver1927: Memory pool operations verified successfully" << std::endl;
+    std::cout << "Solver1927: SIMD dispatcher tested successfully" << std::endl;
     std::cout << "Solver1927: No solutions found (stub implementation)" << std::endl;
     
     // Call hash done callback to indicate completion
