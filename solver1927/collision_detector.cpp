@@ -63,15 +63,18 @@ bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
     std::cout << "  Initial hashes: " << hash_count << std::endl;
     std::cout << "  Stages: " << STAGES << " (collision bits: " << COLLISION_BITS << ")" << std::endl;
     
-    // Process all stages sequentially
-    const uint8_t* current_data = pool->initial_hashes.data[0];
+    // Stage 0: Process initial Blake2b hashes
+    const uint8_t* current_input = pool->initial_hashes.data[0];
     size_t current_count = hash_count;
+    bool use_stage_buffer_0 = true;  // Ping-pong between stage buffers
     
     for (int stage = 0; stage < STAGES; stage++) {
         std::cout << "  Stage " << stage << ": ";
         
-        size_t collisions_found = find_stage_collisions(current_data, current_count, 
-                                                       stages[stage], stage);
+        // Stage 0 uses Blake2b hashes, stages 1+ use XOR results  
+        bool is_blake2b_input = (stage == 0);
+        size_t collisions_found = find_stage_collisions(current_input, current_count, 
+                                                       stages[stage], stage, is_blake2b_input);
         
         std::cout << collisions_found << " collisions found" << std::endl;
         
@@ -81,27 +84,40 @@ bool CollisionDetector::detect_collisions(MemoryPool* pool, size_t hash_count) {
             return false;
         }
         
-        // For stages 1-7, we need to process collision pairs instead of raw hashes
-        if (stage < STAGES - 1) {
-            // Prepare data for next stage (this is simplified - real implementation
-            // would copy XOR results to next buffer)
-            current_count = collisions_found;
-        }
-        
-        // Check for solutions at final stage
+        // Check for final stage solutions
         if (stage == STAGES - 1) {
-            // At final stage, any collision represents a potential solution
             std::cout << "CollisionDetector: Found " << collisions_found 
                       << " potential solutions at final stage!" << std::endl;
             return collisions_found > 0;
         }
+        
+        // Prepare XOR results for next stage
+        uint8_t* next_stage_buffer;
+        if (use_stage_buffer_0) {
+            next_stage_buffer = pool->stage_buffers[0].data[0];
+        } else {
+            next_stage_buffer = pool->stage_buffers[1].data[0];
+        }
+        
+        // Copy XOR results from collision pairs to next stage input buffer
+        for (size_t i = 0; i < collisions_found; i++) {
+            const auto& collision = stages[stage].collisions[i];
+            memcpy(next_stage_buffer + (i * 32), collision.xor_result, 32);
+        }
+        
+        std::cout << "    Copied " << collisions_found << " XOR results to next stage buffer" << std::endl;
+        
+        // Set up for next stage
+        current_input = next_stage_buffer;
+        current_count = collisions_found;
+        use_stage_buffer_0 = !use_stage_buffer_0;  // Ping-pong for next stage
     }
     
     return false;
 }
 
 size_t CollisionDetector::find_stage_collisions(const uint8_t* input_data, size_t input_count,
-                                               StageData& output_stage, int stage_num) {
+                                               StageData& output_stage, int stage_num, bool is_blake2b_input) {
     output_stage.clear();
     
     // Clear all buckets for this stage
@@ -110,7 +126,7 @@ size_t CollisionDetector::find_stage_collisions(const uint8_t* input_data, size_
     }
     
     // Populate buckets based on collision bits for this stage
-    populate_buckets(input_data, input_count, stage_num);
+    populate_buckets(input_data, input_count, stage_num, is_blake2b_input);
     
     // Process each bucket to find collisions
     size_t total_collisions = 0;
@@ -148,17 +164,18 @@ size_t CollisionDetector::find_stage_collisions(const uint8_t* input_data, size_
     return total_collisions;
 }
 
-void CollisionDetector::populate_buckets(const uint8_t* hashes, size_t hash_count, int stage) {
+void CollisionDetector::populate_buckets(const uint8_t* hashes, size_t hash_count, int stage, bool is_blake2b_input) {
     std::cout << "CollisionDetector: Populating buckets for stage " << stage 
-              << " with " << hash_count << " hashes" << std::endl;
+              << " with " << hash_count << (is_blake2b_input ? " Blake2b hashes" : " XOR results") << std::endl;
     
     for (size_t i = 0; i < hash_count; i++) {
-        const uint8_t* hash = hashes + (i * 32);  // Each hash is 32 bytes
+        const uint8_t* hash = hashes + (i * 32);  // Each input is 32 bytes
         uint32_t bucket_id = extract_collision_bits(hash, stage);
         
-        // Debug: print first few bucket IDs
-        if (i < 5) {
-            std::cout << "  Hash " << i << ": first 8 bytes = ";
+        // Debug: print first few bucket IDs for different input types
+        if (i < 3) {
+            std::cout << "  " << (is_blake2b_input ? "Hash" : "XOR") << " " << i 
+                      << ": first 8 bytes = ";
             for (int j = 0; j < 8; j++) {
                 printf("%02x", hash[j]);
             }

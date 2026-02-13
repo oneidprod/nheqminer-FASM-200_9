@@ -51,7 +51,7 @@ public:
     
     // Stage-specific collision detection
     size_t find_stage_collisions(const uint8_t* input_data, size_t input_count,
-                                 StageData& output_stage, int stage_num);
+                                 StageData& output_stage, int stage_num, bool is_blake2b_input = true);
     
     // Extract collision bit pattern for bucketing
     uint32_t extract_collision_bits(const uint8_t* hash, int stage);
@@ -88,7 +88,7 @@ private:
     
     // Internal collision detection methods
     void initialize_buckets();
-    void populate_buckets(const uint8_t* hashes, size_t hash_count, int stage);
+    void populate_buckets(const uint8_t* hashes, size_t hash_count, int stage, bool is_blake2b_input = true);
     size_t process_bucket_collisions(size_t bucket_id, StageData& output, int stage);
     
     // SIMD dispatch functions
