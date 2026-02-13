@@ -1,0 +1,8 @@
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/solver1927.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/test.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/edit_cache.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/rebuild_cache.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/list_install_components.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/install.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/install/local.dir
+/home/griffithm/builds/1927_miner_project/nheqminer-FASM-200_9/solver1927/CMakeFiles/install/strip.dir

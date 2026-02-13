@@ -173,7 +173,7 @@ void CollisionDetector::populate_buckets(const uint8_t* hashes, size_t hash_coun
         uint32_t bucket_id = extract_collision_bits(hash, stage);
         
         // Debug: print first few bucket IDs for different input types
-        if (i < 3) {
+        if (i < 1 && stage < 2) {  // Minimal debug output for large hash counts
             std::cout << "  " << (is_blake2b_input ? "Hash" : "XOR") << " " << i 
                       << ": first 8 bytes = ";
             for (int j = 0; j < 8; j++) {
@@ -240,13 +240,13 @@ uint32_t CollisionDetector::extract_collision_bits(const uint8_t* hash, int stag
     int start_byte = start_bit / 8;
     int bit_offset = start_bit % 8;
     
-    // For debugging
-    static bool debug_printed = false;
-    if (!debug_printed) {
+    // For debugging - show bit extraction for each stage
+    static int last_debug_stage = -1;
+    if (stage != last_debug_stage) {
         std::cout << "CollisionDetector: Stage " << stage 
                   << " - extracting " << COLLISION_BITS << " bits starting from bit "
                   << start_bit << " (byte " << start_byte << ", offset " << bit_offset << ")" << std::endl;
-        debug_printed = true;
+        last_debug_stage = stage;
     }
     
     // Extract 4 bytes and shift to get our 24 bits
