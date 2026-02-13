@@ -55,6 +55,7 @@ int use_avx = 0;
 int use_avx2 = 0;
 int use_old_cuda = 0;
 int use_old_xmp = 0;
+int solver1927_threads = 0;
 
 // TODO move somwhere else
 MinerFactory *_MinerFactory = nullptr;
@@ -86,6 +87,9 @@ void print_help()
 	std::cout << "CPU settings" << std::endl;
 	std::cout << "\t-t [num_thrds]\tNumber of CPU threads" << std::endl;
 	std::cout << "\t-e [ext]\tForce CPU ext (0 = SSE2, 1 = AVX, 2 = AVX2)" << std::endl;
+	std::cout << std::endl;
+	std::cout << "Advanced Solver settings" << std::endl;
+	std::cout << "\t-c1927 [threads]\tEnable Equihash 192,7 solver with thread count" << std::endl;
 	std::cout << std::endl;
 	std::cout << "NVIDIA CUDA settings" << std::endl;
 	std::cout << "\t-ci\t\tCUDA info" << std::endl;
@@ -276,6 +280,13 @@ int main(int argc, char* argv[])
 		{
 		case 'c':
 		{
+			// Special case for -c1927
+			if (strcmp(argv[i], "-c1927") == 0 && i + 1 < argc) 
+			{
+				solver1927_threads = atoi(argv[++i]);
+				break;
+			}
+			
 			switch (argv[i][2])
 			{
 			case 'i':

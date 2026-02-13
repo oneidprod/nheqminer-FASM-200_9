@@ -4,6 +4,7 @@
 
 extern int use_avx;
 extern int use_avx2;
+extern int solver1927_threads;
 
 
 
@@ -38,9 +39,17 @@ std::vector<ISolver *> MinerFactory::GenerateSolvers(int cpu_threads, int cuda_c
 		else if (hasGpus) --cpu_threads; // decrease number of threads if there are GPU workers
 	}
 
-	for (int i = 0; i < cpu_threads; ++i)
-	{
-		solversPointers.push_back(GenCPUSolver(use_avx2));
+	// Add Solver1927 instances if requested
+	for (int i = 0; i < solver1927_threads; ++i) {
+		solversPointers.push_back(GenSolver1927(use_avx2));
+	}
+
+	// Generate regular CPU solvers only if no 1927 solvers requested
+	if (solver1927_threads == 0) {
+		for (int i = 0; i < cpu_threads; ++i)
+		{
+			solversPointers.push_back(GenCPUSolver(use_avx2));
+		}
 	}
 
 	return solversPointers;
@@ -57,8 +66,8 @@ void MinerFactory::ClearAllSolvers() {
 
 ISolver * MinerFactory::GenCPUSolver(int use_opt) {
 #ifdef USE_SOLVER1927
-    // Use Solver1927 (Equihash 192,7 optimized) as primary CPU solver
-    _solvers.push_back(new CPUSolver1927(use_opt));
+    // Use Solver1927 (Equihash 192,7 optimized) in regular CPU mode
+    _solvers.push_back(new solver1927());
     return _solvers.back();
 #elif defined(USE_CPU_XENONCAT)
 	if (_use_xenoncat) {
@@ -95,4 +104,13 @@ ISolver * MinerFactory::GenOPENCLSolver(int platf_id, int dev_id) {
 		_solvers.push_back(new OPENCLSolverXMP(platf_id, dev_id));
 		return _solvers.back();
 	}
+}
+
+ISolver * MinerFactory::GenSolver1927(int use_opt) {
+#ifdef USE_SOLVER1927
+	_solvers.push_back(new solver1927());
+	return _solvers.back();
+#else
+	return nullptr;
+#endif
 }

@@ -48,29 +48,85 @@ void solver1927::report_simd_capabilities() const {
     std::cout << "  Parallel hashes: " << g_simd_detector.get_parallel_hash_count() << std::endl;
 }
 
+bool solver1927::test_blake2b_integration(const char* header, unsigned int header_len,
+                                         const char* nonce, unsigned int nonce_len) {
+    std::cout << "Testing Blake2b integration..." << std::endl;
+    
+    // Initialize Blake2b for this solve session
+    if (!blake2b_manager.initialize_for_solve(reinterpret_cast<const uint8_t*>(header), header_len,
+                                              reinterpret_cast<const uint8_t*>(nonce), nonce_len)) {
+        return false;
+    }
+    
+    // Generate a small batch of test hashes
+    auto* pool = memory_manager.get();
+    if (!pool) {
+        std::cerr << "Memory pool not available for Blake2b test!" << std::endl;
+        return false;
+    }
+    
+    size_t test_hashes = 100;  // Generate 100 test hashes
+    size_t generated = blake2b_manager.generate_hashes(pool, test_hashes);
+    
+    if (generated != test_hashes) {
+        std::cerr << "Blake2b test failed: Expected " << test_hashes 
+                  << " hashes, got " << generated << std::endl;
+        return false;
+    }
+    
+    // Verify first few hashes are different (basic sanity check)
+    bool hashes_differ = false;
+    for (int i = 1; i < 5 && i < generated; i++) {
+        if (memcmp(pool->initial_hashes.data[0], pool->initial_hashes.data[i], 32) != 0) {
+            hashes_differ = true;
+            break;
+        }
+    }
+    
+    if (!hashes_differ) {
+        std::cerr << "Blake2b test warning: Generated hashes appear identical" << std::endl;
+    }
+    
+    // Display first hash for verification
+    std::cout << "Blake2b test successful - First hash: ";
+    for (int i = 0; i < 8; i++) {
+        printf("%02x", pool->initial_hashes.data[0][i]);
+    }
+    std::cout << "..." << std::endl;
+    
+    return true;
+}
+
 void solver1927::solve(const char *tequihash_header,
                       unsigned int tequihash_header_len,
                       const char* nonce,
                       unsigned int nonce_len,
                       std::function<bool()> cancelf,
                       std::function<void(const std::vector<uint32_t>&, size_t, const unsigned char*)> solutionf,
-                      std::function<void(void)> hashdonef,
-                      solver1927& device_context) 
+                      std::function<void(void)> hashdonef) 
 {
     // Verify memory pool is available
-    if (!device_context.memory_manager.is_valid()) {
+    if (!memory_manager.is_valid()) {
         std::cerr << "Solver1927: ERROR - Memory pool not initialized!" << std::endl;
         hashdonef();
         return;
     }
     
-    auto* pool = device_context.memory_manager.get();
+    auto* pool = memory_manager.get();
     std::cout << "Solver1927: Starting solve with N=" << N << ", K=" << K << std::endl;
     std::cout << "Header length: " << tequihash_header_len << " bytes" << std::endl;
     std::cout << "Nonce length: " << nonce_len << " bytes" << std::endl;
     std::cout << "Memory pool: " << std::fixed << std::setprecision(2) 
-              << device_context.memory_manager.get_memory_mb() << " MB" << std::endl;
+              << memory_manager.get_memory_mb() << " MB" << std::endl;
     std::cout << "Active SIMD: " << Solver1927::g_simd_dispatcher.get_active_name() << std::endl;
+    
+    // Test Blake2b integration
+    if (!test_blake2b_integration(tequihash_header, tequihash_header_len,
+                                  nonce, nonce_len)) {
+        std::cerr << "Solver1927: Blake2b integration test failed!" << std::endl;
+        hashdonef();
+        return;
+    }
     
     // Verify memory layout sizes
     std::cout << "Memory layout verification:" << std::endl;
@@ -120,6 +176,8 @@ void solver1927::solve(const char *tequihash_header,
               << duration.count() << "ms" << std::endl;
     std::cout << "Solver1927: Memory pool operations verified successfully" << std::endl;
     std::cout << "Solver1927: SIMD dispatcher tested successfully" << std::endl;
+    std::cout << "Solver1927: Blake2b integration tested successfully" << std::endl;
+    std::cout << "Solver1927: " << blake2b_manager.get_performance_info() << std::endl;
     std::cout << "Solver1927: No solutions found (stub implementation)" << std::endl;
     
     // Call hash done callback to indicate completion
