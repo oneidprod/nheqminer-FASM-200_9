@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 #include <cstdint>
+#include "memory_pool.hpp"
 
 class solver1927 {
 public:
@@ -23,11 +24,16 @@ public:
     static void getinfo(int platf_id, int d_id, std::string& gpu_name, int& sm_count, std::string& version) {
         gpu_name = "Solver1927 CPU";
         sm_count = 0;
-        version = "0.1.0";
+        version = "0.2.0";
     }
     
-    static void start(solver1927& device_context) {}
-    static void stop(solver1927& device_context) {}
+    static void start(solver1927& device_context) {
+        device_context.initialize_memory();
+    }
+    
+    static void stop(solver1927& device_context) {
+        device_context.cleanup_memory();
+    }
     
     static void solve(const char *tequihash_header,
                      unsigned int tequihash_header_len,
@@ -49,4 +55,11 @@ private:
     static constexpr int N = 192;
     static constexpr int K = 7;
     static constexpr int COLLISION_BITS = 24; // N / (K+1) = 192/8 = 24
+    
+    // Memory management
+    Solver1927::MemoryManager memory_manager;
+    
+    // Internal methods
+    bool initialize_memory();
+    void cleanup_memory();
 };

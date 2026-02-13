@@ -5,6 +5,7 @@ file(GLOB SRC_LIST
     solver1927.cpp )
 file(GLOB HEADERS
     solver1927.hpp
+    memory_pool.hpp
     )
 
 # Include directories
