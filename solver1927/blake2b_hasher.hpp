@@ -21,7 +21,7 @@ private:
     // Equihash 192,7 Blake2b parameters
     static constexpr size_t HASH_OUTPUT_BYTES = 32;  // 256-bit output
     static constexpr size_t INPUT_BLOCK_SIZE = 140;   // Header + nonce + index
-    static constexpr const char* EQUIHASH_PERSONALIZATION = "ZcashPoW";  // Zcash personalization
+    static constexpr const char* EQUIHASH_PERSONALIZATION = "ZERO_PoW";  // Zero coin personalization
     
     // Blake2b state for current solving session
     blake2b_state base_state;

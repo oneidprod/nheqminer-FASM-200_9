@@ -39,7 +39,7 @@ void Blake2bHasher::setup_blake2b_params(blake2b_param* params, uint32_t n, uint
     params->node_depth = 0;                     // Leaf node
     params->inner_length = 0;                   // Not inner node
     
-    // Set Equihash personalization: "ZcashPoW" + n + k
+    // Set Equihash personalization: "ZERO_PoW" + n + k
     memcpy(params->personal, EQUIHASH_PERSONALIZATION, 8);
     
     // Encode n and k in little-endian format (last 8 bytes of personalization)
