@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") #  -Wall
 
 ## Enable solvers here
 #### Pure C++ solvers (enabled by default)
-option(USE_CPU_TROMP "USE CPU_TROMP" ON)
+option(USE_CPU_TROMP "USE CPU_TROMP" OFF)
 option(USE_SOLVER1927 "USE SOLVER1927" ON)
 option(USE_CUDA_TROMP "USE CUDA_TROMP" OFF)
 #### Legacy assembly solvers (disabled - incompatible with 192,7)  
