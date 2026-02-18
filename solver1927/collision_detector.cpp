@@ -224,11 +224,7 @@ size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData&
             
             // Check if the hashes actually collide on the required bits
             // (bucket grouping is just the first filter)
-            bool collision_found = true;
-            
-            // For Stage 0, we already know they match on first 24 bits (bucket ID)
-            // For simplicity, we'll consider this a valid collision
-            // In a full implementation, we'd verify the exact bit pattern match
+            bool collision_found = verify_collision_bits(entry_a.hash_ptr, entry_b.hash_ptr, stage_num);
             
             if (collision_found) {
                 CollisionPair pair;
@@ -298,6 +294,14 @@ uint32_t CollisionDetector::extract_collision_bits(const uint8_t* hash, int stag
     }
     
     return value;
+}
+
+bool CollisionDetector::verify_collision_bits(const uint8_t* hash_a, const uint8_t* hash_b, int stage) {
+    // Extract the collision bits for both hashes and verify they match
+    uint32_t bits_a = extract_collision_bits(hash_a, stage);  
+    uint32_t bits_b = extract_collision_bits(hash_b, stage);
+    
+    return bits_a == bits_b;
 }
 
 void CollisionDetector::compute_xor_simd(const uint8_t* hash_a, const uint8_t* hash_b, uint8_t* result) {

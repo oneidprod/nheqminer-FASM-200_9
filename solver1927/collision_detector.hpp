@@ -48,9 +48,9 @@ struct CollisionPair {
         return ancestor_indices.size(); 
     }
     
-    // Phase 3: Check if this is a complete solution (Stage K)
+    // Phase 3: Check if this is a complete solution (final stage K)
     bool is_complete_solution() const { 
-        return stage_level == 7 && ancestor_indices.size() == 256; // 2^8 = 256 indices
+        return stage_level == K && ancestor_indices.size() == (1u << K); // 2^7 = 128 indices at final Stage 7
     }
 };
 
@@ -131,6 +131,7 @@ private:
     void initialize_buckets();
     void populate_buckets(const uint8_t* hashes, size_t hash_count, int stage, bool is_blake2b_input = true);
     size_t process_bucket_collisions(size_t bucket_id, StageData& output, int stage, const StageData* prev_stage = nullptr);
+    bool verify_collision_bits(const uint8_t* hash_a, const uint8_t* hash_b, int stage);
     
     // SIMD dispatch functions
     void (*xor_function)(const uint8_t*, const uint8_t*, uint8_t*) = nullptr;
