@@ -153,7 +153,7 @@ bool solver1927::run_collision_detection(const char* header, unsigned int header
     // Generate initial hashes for collision detection  
     // Scale up significantly to enable deeper stage progression
     // For 24-bit collision space, need ~50K+ hashes for stage 2-3 progression
-    size_t hash_count = 16000000;  // 16M hashes - proven Stage 3 breakthrough configuration
+    size_t hash_count = 28000000;  // 28M hashes - balanced Stage 4+ targeting without overwhelming pipeline
     std::cout << "Solver1927: Generating " << hash_count << " initial hashes..." << std::endl;
     
     // Initialize Blake2b for this solve session

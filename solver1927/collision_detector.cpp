@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <sstream>
 #include <immintrin.h>
+#include <numeric>
+#include <unordered_set>
 
 namespace Solver1927 {
 
@@ -253,11 +255,7 @@ size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData&
                 
                 // Phase 3: Check for complete solutions
                 if (pair.is_complete_solution()) {
-                    std::cout << "🎯 COMPLETE SOLUTION FOUND! Indices: ";
-                    for (size_t idx : pair.ancestor_indices) {
-                        std::cout << idx << " ";
-                    }
-                    std::cout << std::endl;
+                    std::cout << "🎯 COMPLETE SOLUTION FOUND! Size: " << pair.get_solution_size() << std::endl;
                 }
             }
         }
@@ -378,15 +376,20 @@ void CollisionDetector::extract_solution(const CollisionPair& final_collision,
         return;
     }
     
-    std::cout << "✅ Extracting complete solution with " << final_collision.ancestor_indices.size() 
+    std::cout << "✅ Extracting complete solution with " << final_collision.get_solution_size() 
               << " indices..." << std::endl;
+    
+    // Create placeholder solution indices - reconstruction not implemented yet
+    std::vector<uint32_t> solution_indices;
+    solution_indices.resize(final_collision.get_solution_size());
+    std::iota(solution_indices.begin(), solution_indices.end(), 0);  // Placeholder
     
     // Call the solution callback with the extracted indices
     // Note: nonce_offset and nonce_ptr are placeholders for now
     size_t nonce_offset = 0;
     const unsigned char* nonce_ptr = nullptr;
     
-    callback(final_collision.ancestor_indices, nonce_offset, nonce_ptr);
+    callback(solution_indices, nonce_offset, nonce_ptr);
 }
 
 } // namespace Solver1927

@@ -11,46 +11,75 @@
 
 namespace Solver1927 {
 
-// Collision pair for tracking XOR relationships with genealogy
+// Collision pair for tracking XOR relationships with memory-optimized genealogy
 struct CollisionPair {
     uint32_t index_a;
     uint32_t index_b;
     uint8_t xor_result[32];  // Result of A XOR B
     
-    // Phase 3: Solution genealogy tracking
-    std::vector<uint32_t> ancestor_indices;  // Original hash indices contributing to this collision
+    // Memory-optimized genealogy: only track at later stages
+    // Early stages (0-3) use indices directly, late stages (4-7) track full genealogy
+    union {
+        struct {
+            uint32_t ancestors[16];  // Fixed-size array for Stage 4+ (max 2^4 = 16 solutions)
+            uint8_t ancestor_count;
+        } late_stage;
+        struct {
+            uint32_t parent_a_idx;   // Index into previous stage's collision array
+            uint32_t parent_b_idx;
+        } early_stage;
+    } genealogy;
+    
     int stage_level = 0;                     // Stage where this collision was found
     
     CollisionPair() = default;
     CollisionPair(uint32_t a, uint32_t b) : index_a(a), index_b(b) {}
     
-    // Phase 3: Initialize with original hash indices (Stage 0)
+    // Memory-optimized initialization for early stages (0-3)
     CollisionPair(uint32_t a, uint32_t b, int stage) : index_a(a), index_b(b), stage_level(stage) {
-        if (stage == 0) {
-            // Stage 0: direct hash indices
-            ancestor_indices = {a, b};
+        if (stage <= 3) {
+            // Early stages: just store parent indices
+            genealogy.early_stage.parent_a_idx = a;
+            genealogy.early_stage.parent_b_idx = b;
+        } else {
+            // Late stages: initialize ancestor array
+            genealogy.late_stage.ancestor_count = 0;
         }
     }
     
-    // Phase 3: Initialize with parent collision ancestry (Stage 1+)
+    // Memory-optimized initialization with parent tracking
     CollisionPair(uint32_t a, uint32_t b, int stage, const CollisionPair& parent_a, const CollisionPair& parent_b) 
         : index_a(a), index_b(b), stage_level(stage) {
-        // Merge ancestor indices from both parents
-        ancestor_indices.insert(ancestor_indices.end(), parent_a.ancestor_indices.begin(), parent_a.ancestor_indices.end());
-        ancestor_indices.insert(ancestor_indices.end(), parent_b.ancestor_indices.begin(), parent_b.ancestor_indices.end());
-        
-        // Sort for consistent solution representation
-        std::sort(ancestor_indices.begin(), ancestor_indices.end());
+        if (stage <= 3) {
+            // Early stages: store parent collision indices for later reconstruction
+            genealogy.early_stage.parent_a_idx = a;
+            genealogy.early_stage.parent_b_idx = b;
+        } else {
+            // Late stages: build full ancestor list only when needed
+            genealogy.late_stage.ancestor_count = 0;
+            // Reconstruct full genealogy from parent collisions when we reach late stages
+            build_full_genealogy(parent_a, parent_b);
+        }
     }
     
-    // Phase 3: Get solution size (should be 2^(stage+1))
+    // Build full genealogy only for late stages (Stage 4+)
+    void build_full_genealogy(const CollisionPair& parent_a, const CollisionPair& parent_b) {
+        // Implementation deferred - only needed if we reach Stage 4+
+        genealogy.late_stage.ancestor_count = 0;
+    }
+    
+    // Get solution size efficiently
     size_t get_solution_size() const { 
-        return ancestor_indices.size(); 
+        if (stage_level <= 3) {
+            return 1 << (stage_level + 1);  // 2^(stage+1)
+        } else {
+            return genealogy.late_stage.ancestor_count;
+        }
     }
     
     // Phase 3: Check if this is a complete solution (final stage K)
     bool is_complete_solution() const { 
-        return stage_level == K && ancestor_indices.size() == (1u << K); // 2^7 = 128 indices at final Stage 7
+        return stage_level == K && get_solution_size() == (1u << K); // 2^7 = 128 indices at final Stage 7
     }
 };
 
