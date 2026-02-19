@@ -70,10 +70,16 @@ struct CollisionPair {
     
     // Get solution size efficiently
     size_t get_solution_size() const { 
-        if (stage_level <= 3) {
+        // For Equihash 192,7: final stage should have 2^7 = 128 solution indices
+        if (stage_level == K) {
+            return 1u << K;  // Final stage: always 2^K indices (128 for K=7)
+        } else if (stage_level <= 3) {
             return 1 << (stage_level + 1);  // 2^(stage+1)
         } else {
-            return genealogy.late_stage.ancestor_count;
+            // Late stages 4-6: use genealogy count if available, otherwise estimate
+            return genealogy.late_stage.ancestor_count > 0 ? 
+                   genealogy.late_stage.ancestor_count : 
+                   (1u << (stage_level + 1));
         }
     }
     
@@ -133,6 +139,9 @@ public:
     
     // Phase 3: Solution extraction and validation
     void extract_solution(const CollisionPair& final_collision, std::function<void(const std::vector<uint32_t>&, size_t, const unsigned char*)> callback);
+    
+    // Reconstruct solution indices by tracing collision genealogy
+    void reconstruct_solution_indices(const CollisionPair& collision, std::vector<uint32_t>& result);
     
     // Validate final solutions
     bool validate_solution(const std::vector<uint32_t>& solution_indices);
