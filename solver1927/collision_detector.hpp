@@ -108,9 +108,9 @@ public:
     static constexpr int BUCKET_COUNT = 1 << COLLISION_BITS;  // 2^24 = 16M buckets
     
     // Processing limits to prevent O(n²) explosion in bucket processing
-    static constexpr size_t MAX_BUCKET_SIZE_LIMIT = 2000;      // Skip buckets larger than this
-    static constexpr size_t MAX_BUCKET_PAIRS = 500000;         // Max pairs per bucket (prevents n² explosion)
-    static constexpr size_t MAX_TOTAL_COLLISIONS_PER_STAGE = 5000000;  // Cap total collisions per stage
+    static constexpr size_t MAX_BUCKET_SIZE_LIMIT = 3000;      // Skip buckets larger than this (increased for later stages)
+    static constexpr size_t MAX_BUCKET_PAIRS = 750000;         // Max pairs per bucket (increased capacity)  
+    static constexpr size_t MAX_TOTAL_COLLISIONS_PER_STAGE = 8000000;  // Cap total collisions per stage (Stage 0: 8M for downstream density)
     
     CollisionDetector();
     ~CollisionDetector() = default;
