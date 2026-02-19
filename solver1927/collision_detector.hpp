@@ -107,6 +107,11 @@ public:
     static constexpr int COLLISION_BITS = 24;  // N / STAGES = 24
     static constexpr int BUCKET_COUNT = 1 << COLLISION_BITS;  // 2^24 = 16M buckets
     
+    // Processing limits to prevent O(n²) explosion in bucket processing
+    static constexpr size_t MAX_BUCKET_SIZE_LIMIT = 2000;      // Skip buckets larger than this
+    static constexpr size_t MAX_BUCKET_PAIRS = 500000;         // Max pairs per bucket (prevents n² explosion)
+    static constexpr size_t MAX_TOTAL_COLLISIONS_PER_STAGE = 5000000;  // Cap total collisions per stage
+    
     CollisionDetector();
     ~CollisionDetector() = default;
     

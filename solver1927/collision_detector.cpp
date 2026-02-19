@@ -216,9 +216,30 @@ size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData&
     const auto& bucket = buckets[bucket_id];
     size_t collision_count = 0;
     
-    // Compare all pairs within the bucket
+    // Skip oversized buckets to prevent O(n²) explosion
+    if (bucket.size() > MAX_BUCKET_SIZE_LIMIT) {
+        std::cout << "    Skipping bucket " << bucket_id << " with size " << bucket.size() 
+                  << " (exceeds limit " << MAX_BUCKET_SIZE_LIMIT << ")" << std::endl;
+        return 0;
+    }
+    
+    // Early exit if already found enough collisions for this stage
+    if (output_stage.collisions.size() >= MAX_TOTAL_COLLISIONS_PER_STAGE) {
+        return 0; 
+    }
+    
+    size_t pairs_processed = 0;
+    
+    // Compare all pairs within the bucket with O(n²) limiter
     for (size_t i = 0; i < bucket.size(); i++) {
         for (size_t j = i + 1; j < bucket.size(); j++) {
+            // Apply pair processing limit to prevent explosion
+            if (pairs_processed >= MAX_BUCKET_PAIRS) {
+                std::cout << "    Bucket " << bucket_id << " hit pair processing limit (" 
+                          << MAX_BUCKET_PAIRS << " pairs)" << std::endl;
+                return collision_count;
+            }
+            pairs_processed++;
             stats.total_comparisons++;
             
             const auto& entry_a = bucket[i];
@@ -229,6 +250,13 @@ size_t CollisionDetector::process_bucket_collisions(size_t bucket_id, StageData&
             bool collision_found = verify_collision_bits(entry_a.hash_ptr, entry_b.hash_ptr, stage_num);
             
             if (collision_found) {
+                // Early exit check during collision creation
+                if (output_stage.collisions.size() >= MAX_TOTAL_COLLISIONS_PER_STAGE) {
+                    std::cout << "    Stage " << stage_num << " collision limit reached (" 
+                              << MAX_TOTAL_COLLISIONS_PER_STAGE << ")" << std::endl;
+                    return collision_count;
+                }
+                
                 CollisionPair pair;
                 
                 // Phase 3: Create collision with genealogy tracking

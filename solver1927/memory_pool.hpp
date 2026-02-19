@@ -28,9 +28,9 @@ constexpr int STAGES = 8;           // K+1 = 8 collision stages
 constexpr int BUCKETS = 256;        // 2^8 buckets per stage
 
 // Memory sizing calculations for L3 cache optimization
-constexpr size_t INITIAL_HASHES = 28 * 1024 * 1024;   // 29,360,128 initial hashes (28M balanced for Stage 4+ progression)
-constexpr size_t STAGE_ENTRIES = 1 << 23;       // 8,388,608 entries per stage buffer (optimized for processing efficiency)
-constexpr size_t BUCKET_SIZE = 16384;           // Large buckets for Stage 4+ collision density
+constexpr size_t INITIAL_HASHES = 24 * 1024 * 1024;   // 25,165,824 initial hashes (24M - reduced for processing stability)
+constexpr size_t STAGE_ENTRIES = 6 * 1024 * 1024;     // 6,291,456 entries per stage buffer (balanced for collision processing)
+constexpr size_t BUCKET_SIZE = 12288;                 // 12K bucket size (reduced from 16K to prevent O(n²) explosion)
 
 /**
  * 64-byte aligned memory allocation for cache optimization
